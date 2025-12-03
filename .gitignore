@@ -1,0 +1,8 @@
+## Ignore environment files and local config
+.env
+
+# Node / general
+node_modules/
+dist/
+.vscode/
+config.js

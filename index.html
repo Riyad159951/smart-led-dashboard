@@ -104,6 +104,9 @@
 
   <footer>© 2025 Developed by Redwan Hossen | Smart IoT Dashboard</footer>
 
+  <!-- Load local config (generated from .env) which defines window.CONFIG = { AIO_KEY: '...' } -->
+  <script src="config.js"></script>
+
   <script>
     const ctx = document.getElementById('thChart');
     const chart = new Chart(ctx, {
@@ -123,9 +126,11 @@
     });
 
   // IMPORTANT: Do NOT hardcode your Adafruit IO key into source controlled files.
-  // Replace the placeholder below in your local copy only, or better: load it from
-  // a secure source (environment variable, server-side proxy, or GitHub Secrets).
-  const AIO_KEY = 'REPLACE_WITH_ADAFRUIT_IO_KEY';
+  // This app will look for a generated `config.js` that sets `window.CONFIG.AIO_KEY`.
+  // For local development run `./gen-config.ps1` (Windows PowerShell) which reads
+  // your local .env and writes a `config.js`. `config.js` is ignored by git.
+  const AIO_KEY = (window.CONFIG && window.CONFIG.AIO_KEY) || 'REPLACE_WITH_ADAFRUIT_IO_KEY';
+  if (AIO_KEY === 'REPLACE_WITH_ADAFRUIT_IO_KEY') console.warn('AIO_KEY not set. Create a local .env and run gen-config.ps1 to generate config.js');
 
     async function fetchLatest(){
       try{
