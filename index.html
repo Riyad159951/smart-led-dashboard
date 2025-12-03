@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Redwan's Smart IoT Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
+    body{
+      background:linear-gradient(135deg,#001f3f,#0074D9,#7FDBFF);
+      color:#fff;
+      min-height:100vh;
+      overflow-x:hidden;
+      animation:bgmove 15s ease-in-out infinite alternate;
+    }
+    @keyframes bgmove{0%{background-position:0 0;}100%{background-position:100% 100%;}}
+
+    header{
+      display:flex;justify-content:space-between;align-items:center;
+      padding:20px 60px;
+      background:rgba(255,255,255,0.1);
+      backdrop-filter:blur(10px);
+      border-bottom:2px solid rgba(255,255,255,0.2);
+      box-shadow:0 4px 20px rgba(0,0,0,0.2);
+    }
+    .logo{
+      font-size:26px;font-weight:700;
+      background:linear-gradient(90deg,#FFDC00,#FF851B);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    }
+    nav a{
+      color:#fff;text-decoration:none;margin-left:25px;font-weight:500;position:relative;
+    }
+    nav a::after{
+      content:'';position:absolute;bottom:-5px;left:0;width:0%;height:2px;background:#FFDC00;transition:0.3s;
+    }
+    nav a:hover::after{width:100%;}
+
+    main{padding:40px 60px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:30px;}
+
+    .card{
+      background:rgba(255,255,255,0.12);
+      border-radius:16px;padding:25px;text-align:center;
+      box-shadow:0 10px 30px rgba(0,0,0,0.3);
+      backdrop-filter:blur(15px);
+      transition:transform 0.4s ease, box-shadow 0.4s ease;
+    }
+    .card:hover{
+      transform:translateY(-8px);
+      box-shadow:0 15px 35px rgba(0,0,0,0.4);
+    }
+
+    .stat-title{font-size:16px;color:#ddd;}
+    .stat-value{font-size:36px;font-weight:700;margin-top:10px;}
+
+    .chart-box{grid-column:1/-1;background:rgba(255,255,255,0.15);padding:30px;border-radius:20px;}
+
+    button{
+      border:none;outline:none;padding:14px 22px;margin:8px;
+      border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;
+      color:#fff;transition:0.3s;
+    }
+    .btn-on{background:linear-gradient(90deg,#2ECC40,#01FF70);} 
+    .btn-off{background:linear-gradient(90deg,#FF4136,#FF851B);} 
+    button:hover{transform:scale(1.05);}
+
+    footer{text-align:center;margin-top:50px;color:#ccc;font-size:14px;}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">Redwan's Smart IoT</div>
+    <nav>
+      <a href="#">Dashboard</a>
+      <a href="#">Control</a>
+      <a href="#">Logs</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="card">
+      <div class="stat-title">Temperature</div>
+      <div class="stat-value" id="tempVal">-- °C</div>
+    </div>
+    <div class="card">
+      <div class="stat-title">Humidity</div>
+      <div class="stat-value" id="humVal">-- %</div>
+    </div>
+    <div class="card">
+      <div class="stat-title">LED Status</div>
+      <div class="stat-value" id="ledVal">UNKNOWN</div>
+      <div>
+        <button class="btn-on" id="btnOn">TURN ON</button>
+        <button class="btn-off" id="btnOff">TURN OFF</button>
+      </div>
+    </div>
+
+    <div class="chart-box">
+      <canvas id="thChart" height="120"></canvas>
+    </div>
+  </main>
+
+  <footer>© 2025 Developed by Redwan Hossen | Smart IoT Dashboard</footer>
+
+  <script>
+    const ctx = document.getElementById('thChart');
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          { label: 'Temperature (°C)', data: [], borderColor: '#FF4136', backgroundColor: 'rgba(255,65,54,0.3)', tension: 0.4 },
+          { label: 'Humidity (%)', data: [], borderColor: '#0074D9', backgroundColor: 'rgba(0,116,217,0.3)', tension: 0.4 }
+        ]
+      },
+      options: {
+        responsive:true,
+        scales:{x:{ticks:{color:'#fff'}},y:{ticks:{color:'#fff'}}},
+        plugins:{legend:{labels:{color:'#fff'}}}
+      }
+    });
+
+  // IMPORTANT: Do NOT hardcode your Adafruit IO key into source controlled files.
+  // Replace the placeholder below in your local copy only, or better: load it from
+  // a secure source (environment variable, server-side proxy, or GitHub Secrets).
+  const AIO_KEY = 'REPLACE_WITH_ADAFRUIT_IO_KEY';
+
+    async function fetchLatest(){
+      try{
+        const tRes = await fetch(`https://io.adafruit.com/api/v2/redwan14/feeds/temperature/data/last`, { headers:{'X-AIO-Key': AIO_KEY} });
+        const hRes = await fetch(`https://io.adafruit.com/api/v2/redwan14/feeds/humidity/data/last`, { headers:{'X-AIO-Key': AIO_KEY} });
+        const tJson = await tRes.json(); const hJson = await hRes.json();
+        const temp=parseFloat(tJson.value); const hum=parseFloat(hJson.value);
+        document.getElementById('tempVal').innerText=temp+' °C';
+        document.getElementById('humVal').innerText=hum+' %';
+        chart.data.labels.push(new Date().toLocaleTimeString());
+        chart.data.datasets[0].data.push(temp);
+        chart.data.datasets[1].data.push(hum);
+        if(chart.data.labels.length>15){chart.data.labels.shift();chart.data.datasets[0].data.shift();chart.data.datasets[1].data.shift();}
+        chart.update();
+      }catch(e){console.log(e)}
+    }
+
+    async function publishLed(cmd){
+      await fetch(`https://io.adafruit.com/api/v2/redwan14/feeds/ledcontrol/data`, {
+        method:'POST',headers:{'Content-Type':'application/json','X-AIO-Key': AIO_KEY},body:JSON.stringify({value:cmd})
+      });
+      document.getElementById('ledVal').innerText=cmd.toUpperCase();
+    }
+
+    document.getElementById('btnOn').addEventListener('click',()=>publishLed('on'));
+    document.getElementById('btnOff').addEventListener('click',()=>publishLed('off'));
+
+    fetchLatest();
+    setInterval(fetchLatest,5000);
+  </script>
+</body>
+</html>
